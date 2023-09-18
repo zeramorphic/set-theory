@@ -1,11 +1,11 @@
 import Std.Data.Fin.Basic
-import SetTheory.Basic
+import SetTheory.SetTheory
 
 /-- `BoundedFormula α n` is the type of formulas in the language of set theory,
 with free variables indexed by `α` and up to `n` additional free "local" variables. -/
 inductive BoundedFormula (α : Type) : Nat → Type
   | protected falsum {n} : BoundedFormula α n
-  | protected equal {n} (x y : α ⊕ Fin n) : BoundedFormula α n
+  | protected eq {n} (x y : α ⊕ Fin n) : BoundedFormula α n
   | protected mem {n} (x y : α ⊕ Fin n) : BoundedFormula α n
   | protected imp {n} (p q : BoundedFormula α n) : BoundedFormula α n
   | protected all {n} (p : BoundedFormula α (n + 1)) : BoundedFormula α n
@@ -38,6 +38,67 @@ theorem termSucc_inl :
 theorem termSucc_inr :
     termSucc (Sum.inr k : α ⊕ Fin n) = Sum.inr k.castSucc :=
   rfl
+
+def termSum : α ⊕ Fin n → (α ⊕ β) ⊕ Fin n
+  | .inl a => .inl (.inl a)
+  | .inr k => .inr k
+
+@[simp]
+theorem termSum_inl :
+    (termSum (Sum.inl a) : (α ⊕ β) ⊕ Fin n) = Sum.inl (Sum.inl a) :=
+  rfl
+
+@[simp]
+theorem termSum_inr :
+    (termSum (Sum.inr k) : (α ⊕ β) ⊕ Fin n) = Sum.inr k :=
+  rfl
+
+namespace BoundedFormula
+
+def sum (β : Type _) : BoundedFormula α n → BoundedFormula (α ⊕ β) n
+  | .falsum => .falsum
+  | .eq x y => .eq (termSum x) (termSum y)
+  | .mem x y => .mem (termSum x) (termSum y)
+  | .imp p q => (p.sum β).imp (q.sum β)
+  | .all p => (p.sum β).all
+
+@[simp]
+theorem sum_falsum :
+    (.falsum : BoundedFormula α n).sum β = .falsum :=
+  rfl
+
+@[simp]
+theorem sum_eq :
+    (.eq x y : BoundedFormula α n).sum β = .eq (termSum x) (termSum y) :=
+  rfl
+
+@[simp]
+theorem sum_mem :
+    (.mem x y : BoundedFormula α n).sum β = .mem (termSum x) (termSum y) :=
+  rfl
+
+@[simp]
+theorem sum_imp :
+    (.imp p q : BoundedFormula α n).sum β = (p.sum β).imp (q.sum β) :=
+  rfl
+
+@[simp]
+theorem sum_all :
+    (.all p : BoundedFormula α n).sum β = (p.sum β).all :=
+  rfl
+
+end BoundedFormula
+
+/-- Define a function on `α ⊕ β` by giving separate definitions on `α` and `β`.
+TODO: Once `aesop`'s `std` is bumped, we can use the defn from `Std.Data.Sum.Basic`. -/
+protected def Sum.elim {α β γ} (f : α → γ) (g : β → γ) : α ⊕ β → γ :=
+  fun x => Sum.casesOn x f g
+
+@[simp] theorem Sum.elim_inl (f : α → γ) (g : β → γ) (x : α) :
+    Sum.elim f g (inl x) = f x := rfl
+
+@[simp] theorem Sum.elim_inr (f : α → γ) (g : β → γ) (x : β) :
+    Sum.elim f g (inr x) = g x := rfl
 
 @[simp]
 theorem not_not (p : Prop) : ¬¬p ↔ p := by
@@ -109,7 +170,7 @@ def interpretTerm (M : Type _) (v : α → M) (l : Fin n → M) : α ⊕ Fin n �
 def Interpret (M : Type _) [SetTheory M] {α : Type} :
     {n : Nat} → BoundedFormula α n → (α → M) → (Fin n → M) → Prop
   | _, .falsum, _, _ => False
-  | _, .equal x y, v, l => interpretTerm M v l x = interpretTerm M v l y
+  | _, .eq x y, v, l => interpretTerm M v l x = interpretTerm M v l y
   | _, .mem x y, v, l => interpretTerm M v l x ∈ interpretTerm M v l y
   | _, .imp p q, v, l => Interpret M p v l → Interpret M q v l
   | _, .all p, v, l => ∀ x : M, Interpret M p v (Fin.snoc l x)
@@ -137,8 +198,8 @@ theorem interpret_falsum : Interpret M .falsum v l ↔ False :=
   Iff.rfl
 
 @[simp]
-theorem interpret_equal :
-    Interpret M (.equal x y) v l ↔
+theorem interpret_eq :
+    Interpret M (.eq x y) v l ↔
     interpretTerm M v l x = interpretTerm M v l y :=
   Iff.rfl
 
@@ -160,6 +221,18 @@ theorem interpret_all :
     ∀ x : M, Interpret M p v (Fin.snoc l x) :=
   Iff.rfl
 
+@[simp]
+theorem interpret_termSum_elim {p : α ⊕ Fin n} :
+    interpretTerm M (Sum.elim vα vβ) l (termSum p) =
+    interpretTerm M vα l p :=
+  by cases p <;> rfl
+
+@[simp]
+theorem interpret_sum_elim :
+    Interpret M (.sum β p) (Sum.elim vα vβ) l ↔
+    Interpret M p vα l :=
+  by induction p <;> aesop
+
 end SetTheory
 
 protected def BoundedFormula.not (p : BoundedFormula α n) : BoundedFormula α n :=
@@ -168,6 +241,14 @@ protected def BoundedFormula.not (p : BoundedFormula α n) : BoundedFormula α n
 @[simp]
 theorem SetTheory.interpret_not :
     Interpret M (.not p) v l ↔ ¬Interpret M p v l :=
+  Iff.rfl
+
+protected def BoundedFormula.ne (x y : α ⊕ Fin n) : BoundedFormula α n :=
+  .not (.eq x y)
+
+@[simp]
+theorem SetTheory.ne :
+    Interpret M (.ne x y) v l ↔ interpretTerm M v l x ≠ interpretTerm M v l y :=
   Iff.rfl
 
 protected def BoundedFormula.or (p q : BoundedFormula α n) : BoundedFormula α n :=

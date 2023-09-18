@@ -38,11 +38,6 @@ export Pairing (pair pair_isSet mem_pair_iff)
 attribute [aesop safe] pair_isSet
 attribute [aesop norm] mem_pair_iff
 
-@[aesop safe apply]
-theorem mem_pair_iff' [Pairing M] :
-  IsSet x → IsSet y → ∀ z : M, z ∈ pair x y ↔ z = x ∨ z = y :=
-  mem_pair_iff
-
 /-- The axiom of *power set*. If `y` is the power set of some set `x`, then `y` is a set.
 The function `power` is later defined using comprehension. -/
 class PowerSet where
@@ -91,6 +86,10 @@ theorem mem_singleton_iff [Pairing M] {x y : M} (h : IsSet x) :
   show y ∈ pair x x ↔ y = x
   aesop
 
+@[aesop safe]
+theorem singleton_isSet [Pairing M] (hx : IsSet (x : M)) : IsSet ({x} : M) :=
+  pair_isSet hx hx
+
 /-- A class `x` is a pair if it can be constructed by applying `pair` to two sets.
 In this case, `x` is a set. -/
 def IsPair [Pairing M] (x : M) : Prop :=
@@ -107,11 +106,11 @@ theorem isPair_isSet [Pairing M] (hx : IsPair (x : M)) : IsSet x := by
 
 /-- The Kuratowski ordered pair. -/
 def opair [Pairing M] (x y : M) : M :=
-  pair x (pair x y)
+  pair {x} (pair x y)
 
 @[aesop safe]
-theorem opair_isSet [Pairing M] {x y : M} : IsSet x → IsSet y → IsSet (opair x y) := by
-  unfold opair
+theorem opair_isSet [Pairing M] {x y : M} (hx : IsSet x) (hy : IsSet y) : IsSet (opair x y) := by
+  show IsSet (pair (pair x x) (pair x y))
   aesop
 
 /-- A class `x` is an ordered pair if it can be constructed by applying `opair` to two sets.
