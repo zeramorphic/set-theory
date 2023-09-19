@@ -135,31 +135,57 @@ theorem Fin.snoc_castSucc :
   rfl
 
 @[simp]
-theorem lt_add_two {n : Nat} : n < n + 2 := by
-  rw [Nat.lt_succ]
-  exact Nat.le_succ_of_le (Nat.le_refl n)
+theorem Nat.lt_add {n : Nat} (m : Nat) : n < n + (m + 1) := by
+  induction m with
+  | zero =>
+      rw [Nat.lt_succ]
+      exact Nat.le_refl n
+  | succ m ih =>
+      rw [← Nat.add_assoc, Nat.lt_succ]
+      exact Nat.le_of_lt ih
 
 @[simp]
-theorem lt_add_three {n : Nat} : n < n + 3 := by
-  rw [Nat.lt_succ]
-  exact Nat.le_succ_of_le (Nat.le_succ_of_le (Nat.le_refl n))
-
-@[simp]
-theorem Fin.snoc_apply :
+theorem Fin.snoc_last_apply :
     Fin.snoc (l : Fin n → α) x (Fin.last n) = x := by
   simp only [snoc]
   aesop
 
 @[simp]
-theorem Fin.snoc_snoc_apply :
-    Fin.snoc (Fin.snoc (l : Fin n → α) x) y ⟨n, lt_add_two⟩ = x := by
+theorem Fin.snoc_apply :
+    Fin.snoc (l : Fin n → α) x ⟨n, Nat.lt_succ.mpr (Nat.le_refl _)⟩ = x := by
   simp only [snoc]
   aesop
 
 @[simp]
-theorem Fin.snoc_snoc_snoc_apply :
-    Fin.snoc (Fin.snoc (Fin.snoc (l : Fin n → α) x) y) z ⟨n, lt_add_three⟩ = x := by
+theorem Fin.snoc_two_apply :
+    Fin.snoc (Fin.snoc (l : Fin n → α) x) y ⟨n, Nat.lt_add _⟩ = x := by
   simp only [snoc]
+  aesop
+
+@[simp]
+theorem Fin.snoc_three_apply :
+    Fin.snoc (Fin.snoc (Fin.snoc (l : Fin n → α) x) y) z ⟨n, Nat.lt_add _⟩ = x := by
+  simp only [snoc]
+  have : n < n + 1 + 1 := Nat.lt_add _
+  aesop
+
+@[simp]
+theorem Fin.snoc_four_apply :
+    Fin.snoc (Fin.snoc (Fin.snoc (Fin.snoc (l : Fin n → α) x) y) z) w
+      ⟨n, Nat.lt_add _⟩ = x := by
+  simp only [snoc]
+  have : n < n + 1 + 1 := Nat.lt_add _
+  have : n < n + 1 + 1 + 1 := Nat.lt_add _
+  aesop
+
+@[simp]
+theorem Fin.snoc_five_apply :
+    Fin.snoc (Fin.snoc (Fin.snoc (Fin.snoc (Fin.snoc (l : Fin n → α) x) y) z) w) u
+      ⟨n, Nat.lt_add _⟩ = x := by
+  simp only [snoc]
+  have : n < n + 1 + 1 := Nat.lt_add _
+  have : n < n + 1 + 1 + 1 := Nat.lt_add _
+  have : n < n + 1 + 1 + 1 + 1 := Nat.lt_add _
   aesop
 
 @[simp]

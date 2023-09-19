@@ -80,54 +80,6 @@ theorem union_pair_eq_inter_pair :
   · rintro rfl
     simp
 
-/-- The first projection of a Kuratowski ordered pair. -/
-def π₁ (x : V) : V :=
-  ⋃ ⋂ x
-
-/-- The second projection of a Kuratowski ordered pair. -/
-def π₂ (x : V) : V :=
-  ⋃ sep
-    (.imp
-      (.ne (Sum.inl true) (Sum.inl false))
-      (.not (.mem (Sum.inr 0) (Sum.inl false))))
-    (fun i => if i then ⋃ x else ⋂ x) (⋃ x)
-
-theorem mem_π₂_iff : y ∈ π₂ x ↔ ∃ z, y ∈ z ∧ z ∈ ⋃ x ∧ (⋃ x ≠ ⋂ x → z ∉ ⋂ x) := by
-  unfold π₂
-  aesop
-
-@[simp]
-theorem π₁_opair : π₁ (opair x y) = x := by
-  unfold π₁ opair
-  ext z
-  aesop
-
-@[simp]
-theorem π₂_opair : π₂ (opair x y) = y := by
-  unfold opair
-  ext z
-  rw [mem_π₂_iff]
-  simp only [sUnion_pair, sInter_pair, ne_eq, union_pair_eq_inter_pair]
-  constructor
-  · rintro ⟨s, hzs, hsx, hs⟩
-    by_cases h : s = y
-    · subst h
-      exact hzs
-    · aesop
-  · aesop
-
-@[simp]
-theorem opair_injective {x y z w : V} :
-    opair x y = opair z w ↔ x = z ∧ y = w := by
-  constructor
-  · intro h
-    have h₁ := congrArg π₁ h
-    have h₂ := congrArg π₂ h
-    simp at h₁ h₂
-    exact ⟨h₁, h₂⟩
-  · rintro ⟨rfl, rfl⟩
-    rfl
-
 theorem forall_not_mem (h : ∀ y, y ∉ x) : x = ∅ :=
   by ext; aesop
 
@@ -140,6 +92,9 @@ theorem subset_of_eq (h : x = y) : x ⊆ y :=
 
 theorem subset_antisymm (h₁ : x ⊆ y) (h₂ : y ⊆ x) : x = y :=
   by ext; aesop
+
+theorem subset_trans (h₁ : x ⊆ y) (h₂ : y ⊆ z) : x ⊆ z :=
+  fun _ h => h₂ (h₁ h)
 
 /-- The Russell set of a given set `x` is `{y ∈ x | y ∉ y}`. -/
 def russellSet (x : V) :=
@@ -183,5 +138,29 @@ theorem power_not_subset (x : V) : ¬power x ⊆ x := by
 theorem power_ne (x : V) : power x ≠ x := by
   intro h
   exact (power_not_subset x) (subset_of_eq h)
+
+theorem inter_comm : x ∩ y = y ∩ x :=
+  by ext; aesop
+
+theorem union_comm : x ∪ y = y ∪ x :=
+  by ext; aesop
+
+theorem inter_assoc : x ∩ y ∩ z = x ∩ (y ∩ z) :=
+  by ext; aesop
+
+theorem union_assoc : x ∪ y ∪ z = x ∪ (y ∪ z) :=
+  by ext; aesop
+
+theorem inter_distrib_left : x ∩ (y ∪ z) = (x ∩ y) ∪ (x ∩ z) :=
+  by ext; aesop
+
+theorem inter_distrib_right : (x ∪ y) ∩ z = (x ∩ z) ∪ (y ∩ z) :=
+  by ext; aesop
+
+theorem union_distrib_left : x ∪ (y ∩ z) = (x ∪ y) ∩ (x ∪ z) :=
+  by ext; aesop
+
+theorem union_distrib_right : (x ∩ y) ∪ z = (x ∪ z) ∩ (y ∪ z) :=
+  by ext; aesop
 
 end SetTheory
