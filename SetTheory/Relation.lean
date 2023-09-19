@@ -206,7 +206,7 @@ theorem preimage_inverse : preimage (inverse r) x = image r x := by
 
 /-- `x` is in the composition of the relations `s` and `r` if
 `∃ a b c, x = (a, c) ∧ (b, c) ∈ s ∧ (a, b) ∈ r`. -/
-protected def _root_.BoundedFormula.memComp (x s r : α ⊕ Fin n) : BoundedFormula α n :=
+protected def _root_.BoundedFormula.memRComp (x s r : α ⊕ Fin n) : BoundedFormula α n :=
   -- ∃ a b c d e
   .exists (.exists (.exists (.exists (.exists (.and (.and (.and (.and
     -- x = (a, c)
@@ -225,24 +225,25 @@ protected def _root_.BoundedFormula.memComp (x s r : α ⊕ Fin n) : BoundedForm
     (.mem (Sum.inr ⟨n + 3, Nat.lt_add 1⟩)
       (termSucc (termSucc (termSucc (termSucc (termSucc r)))))))))))
 
-theorem interpret_memComp' {x s r : α ⊕ Fin n} :
-    Interpret V (.memComp x s r) v l ↔
+theorem interpret_memRComp' {x s r : α ⊕ Fin n} :
+    Interpret V (.memRComp x s r) v l ↔
     ∃ a b c,
       interpretTerm V v l x = opair a c ∧
       opair b c ∈ interpretTerm V v l s ∧
       opair a b ∈ interpretTerm V v l r := by
-  unfold BoundedFormula.memComp
+  unfold BoundedFormula.memRComp
   simp [and_assoc]
 
-def comp (s r : V) : V :=
+/-- Composition of relations. -/
+def rcomp (s r : V) : V :=
   sep
-    (.memComp (Sum.inr 0) (Sum.inl true) (Sum.inl false))
+    (.memRComp (Sum.inr 0) (Sum.inl true) (Sum.inl false))
     (fun (i : Bool) => if i then s else r)
     (prod (dom r) (ran s))
 
-theorem mem_comp_iff : x ∈ comp s r ↔ ∃ a b c, x = opair a c ∧ opair b c ∈ s ∧ opair a b ∈ r := by
-  unfold comp
-  simp only [mem_sep_iff, interpret_memComp', interpret_inr, interpret_inl, ite_true, ite_false,
+theorem mem_rcomp_iff : x ∈ rcomp s r ↔ ∃ a b c, x = opair a c ∧ opair b c ∈ s ∧ opair a b ∈ r := by
+  unfold rcomp
+  simp only [mem_sep_iff, interpret_memRComp', interpret_inr, interpret_inl, ite_true, ite_false,
     and_iff_right_iff_imp, forall_exists_index, and_imp]
   rintro a b c rfl hs hr
   rw [mem_prod_iff]
@@ -252,15 +253,47 @@ theorem mem_comp_iff : x ∈ comp s r ↔ ∃ a b c, x = opair a c ∧ opair b c
   · rw [mem_ran_iff]
     exact ⟨b, hs⟩
 
-theorem interpret_memComp {x s r : α ⊕ Fin n} :
-    Interpret V (.memComp x s r) v l ↔
-    interpretTerm V v l x ∈ comp (interpretTerm V v l s) (interpretTerm V v l r) := by
-  rw [mem_comp_iff, interpret_memComp']
-
-theorem comp_assoc : comp (comp t s) r = comp t (comp s r) := by
-  ext
-  simp only [mem_comp_iff]
+@[simp]
+theorem opair_mem_rcomp_iff : opair a c ∈ rcomp s r ↔ ∃ b, opair b c ∈ s ∧ opair a b ∈ r := by
+  rw [mem_rcomp_iff]
   aesop
+
+theorem interpret_memRComp {x s r : α ⊕ Fin n} :
+    Interpret V (.memRComp x s r) v l ↔
+    interpretTerm V v l x ∈ rcomp (interpretTerm V v l s) (interpretTerm V v l r) := by
+  rw [mem_rcomp_iff, interpret_memRComp']
+
+theorem rcomp_assoc : rcomp (rcomp t s) r = rcomp t (rcomp s r) := by
+  ext
+  simp only [mem_rcomp_iff]
+  aesop
+
+theorem rcomp_isRelation (hr : IsRelation r) : IsRelation (rcomp s r) := by
+  constructor
+  intro x hx
+  rw [mem_rcomp_iff] at hx
+  aesop
+
+theorem dom_rcomp (h : ran r ⊆ dom s) : dom (rcomp s r) = dom r := by
+  ext t
+  simp only [mem_dom_iff, mem_rcomp_iff, opair_injective]
+  constructor
+  · rintro ⟨z, _, b, _, ⟨rfl, rfl⟩, _, hc⟩
+    exact ⟨_, hc⟩
+  · rintro ⟨b, hb⟩
+    have : b ∈ ran r := by
+      rw [mem_ran_iff]
+      exact ⟨t, hb⟩
+    have := h this
+    rw [mem_dom_iff] at this
+    obtain ⟨z, hz⟩ := this
+    exact ⟨z, _, b, _, ⟨rfl, rfl⟩, hz, hb⟩
+
+theorem ran_rcomp : ran (rcomp s r) ⊆ ran s := by
+  intro t
+  simp only [mem_ran_iff, mem_rcomp_iff, opair_injective]
+  rintro ⟨z, _, b, _, ⟨rfl, rfl⟩, hc, _⟩
+  exact ⟨_, hc⟩
 
 /-- `x` is a member of the identity relation on `y` if `∃ z ∈ y, x = (z, z)`. -/
 protected def _root_.BoundedFormula.memId (x y : α ⊕ Fin n) : BoundedFormula α n :=
