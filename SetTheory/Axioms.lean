@@ -2,232 +2,152 @@ import SetTheory.Formula
 
 namespace SetTheory
 
-variable (M : Type _) [SetTheory M]
+variable (V : Type _) [SetTheory V]
 
-/-- A set theory `M` is *extensional* if classes with the same elements are equal. -/
+/-- A set theory `V` is *extensional* if sets with the same elements are equal. -/
 class Extensionality : Prop where
-  ext (x y : M) (h : ∀ z, z ∈ x ↔ z ∈ y) : x = y
+  ext (x y : V) (h : ∀ z, z ∈ x ↔ z ∈ y) : x = y
 
 attribute [ext] Extensionality.ext
 
-/-- The axiom of *foundation*. Every nonempty class is disjoint from at leaast one of its members. -/
+/-- The axiom of *foundation*. Every nonempty set has an `∈`-minimal element. -/
 class Foundation : Prop where
-  foundation (x : M) (h : NonemptyClass x) : ∃ y, y ∈ x ∧ ∀ z : M, z ∈ y → z ∉ x
+  foundation (x : V) (h : NonemptySet x) : ∃ y, y ∈ x ∧ ∀ z : V, z ∈ y → z ∉ x
 
 export Foundation (foundation)
 
-/-- The axiom of Morse-Kelley *class comprehension*.
+/-- The axiom of *set comprehension*.
 If `p` is a formula with free variables ranging in `α` and one additional free variable,
-and `v` assigns a class to each element of `α`, then `{x | p(v, x)}` is a class. -/
-class ClassComprehension where
-  ofFormula (p : BoundedFormula α 1) (v : α → M) : M
-  mem_ofFormula_iff (x : M) :
-    x ∈ ofFormula p v ↔ IsSet x ∧ Interpret M p v (fun _ => x)
+and `v` assigns a set to each element of `α`, then `{x ∈ y | p(v, x)}` is a set. -/
+class SetComprehension where
+  sep (p : BoundedFormula α 1) (v : α → V) (y : V) : V
+  mem_sep_iff (y x : V) :
+    x ∈ sep p v y ↔ x ∈ y ∧ Interpret V p v (fun _ => x)
 
-export ClassComprehension (ofFormula mem_ofFormula_iff)
-attribute [simp] mem_ofFormula_iff
+export SetComprehension (sep mem_sep_iff)
+attribute [simp] mem_sep_iff
 
-/-- The axiom of *pairing*. If `x` and `y` are sets, there is a set `{x, y}`.
-Technical note: we define `pair` on all classes, but only require that it be well-behaved on sets. -/
+/-- The axiom of *pairing*. If `x` and `y` are sets, there is a set `{x, y}`. -/
 class Pairing where
-  pair (x y : M) : M
-  pair_isSet : IsSet x → IsSet y → IsSet (pair x y)
-  mem_pair_iff : IsSet x → IsSet y → ∀ z : M, z ∈ pair x y ↔ z = x ∨ z = y
+  pair (x y : V) : V
+  mem_pair_iff (z : V) : z ∈ pair x y ↔ z = x ∨ z = y
 
-export Pairing (pair pair_isSet mem_pair_iff)
-attribute [aesop safe] pair_isSet
-attribute [aesop norm] mem_pair_iff
+export Pairing (pair mem_pair_iff)
+attribute [simp] mem_pair_iff
 
-/-- The axiom of *power set*. If `y` is the power set of some set `x`, then `y` is a set.
-The function `power` is later defined using comprehension. -/
+/-- The axiom of *power set*. If `x` is a set, then the set of subsets of `x` exists. -/
 class PowerSet where
-  power_isSet (x y : M) : IsSet x → (∀ z : M, z ∈ y ↔ z ⊆ x) → IsSet y
+  power (x : V) : V
+  mem_power_iff {x : V} (y : V) : y ∈ power x ↔ y ⊆ x
 
-/-- The axiom of *union*. If `y` is the union of some set `x`, then `y` is a set.
-The function `union` is later defined using comprehension. -/
+export PowerSet (power mem_power_iff)
+attribute [simp] mem_power_iff
+
+/-- The axiom of *union*. If `x` is a set, then the set of elements of elements of `x` is a set. -/
 class Union where
-  sUnion_isSet (x y : M) : IsSet x → (∀ z : M, z ∈ y ↔ ∃ t, z ∈ t ∧ t ∈ x) → IsSet y
+  sUnion (x : V) : V
+  mem_sUnion_iff {x : V} (y : V) : y ∈ sUnion x ↔ ∃ t ∈ x, y ∈ t
 
-variable {M} [SetTheory M]
+/-- We will use the notation `⋃` for set union in this project. -/
+prefix:110 "⋃ " => Union.sUnion
 
-theorem ext_iff [Extensionality M] (x y : M) :
+export Union (mem_sUnion_iff)
+attribute [simp] mem_sUnion_iff
+
+/-- The axiom of *empty set*. There is a set with no elements. -/
+class EmptySet where
+  empty : V
+  not_mem_empty (x : V) : x ∉ empty
+
+export EmptySet (not_mem_empty)
+attribute [simp] not_mem_empty
+
+variable {V} [SetTheory V]
+
+theorem ext_iff [Extensionality V] (x y : V) :
     x = y ↔ ∀ z, z ∈ x ↔ z ∈ y :=
   ⟨by aesop, Extensionality.ext x y⟩
 
-instance [ClassComprehension M] : EmptyCollection M where
-  emptyCollection := ofFormula BoundedFormula.falsum (fun (i : Empty) => i.elim)
+instance [EmptySet V] : EmptyCollection V where
+  emptyCollection := EmptySet.empty
 
 @[simp]
-theorem not_mem_empty [ClassComprehension M] (x : M) : x ∉ (∅ : M) := by
-  intro h
-  obtain ⟨_, h⟩ := (mem_ofFormula_iff x).mp h
-  exact h
-
-@[simp]
-theorem mem_empty_iff [ClassComprehension M] (x : M) : x ∈ (∅ : M) ↔ False :=
+theorem mem_empty_iff [EmptySet V] (x : V) : x ∈ (∅ : V) ↔ False :=
   ⟨not_mem_empty x, False.elim⟩
 
-/-- The universe of sets. -/
-def univ [ClassComprehension M] : M :=
-  ofFormula (BoundedFormula.isSet (Sum.inr 0)) (fun (i : Empty) => i.elim)
-
-@[simp]
-theorem mem_univ_iff [ClassComprehension M] (x : M) :
-    x ∈ (univ : M) ↔ IsSet x := by
-  rw [univ]
-  simp
-
-instance [Pairing M] : Singleton M M where
+instance [Pairing V] : Singleton V V where
   singleton x := pair x x
 
-@[aesop norm]
-theorem mem_singleton_iff [Pairing M] {x y : M} (h : IsSet x) :
-    y ∈ ({x} : M) ↔ y = x := by
+@[simp]
+theorem mem_singleton_iff [Pairing V] :
+    y ∈ ({x} : V) ↔ y = x := by
   show y ∈ pair x x ↔ y = x
-  aesop
+  simp
 
-@[aesop safe]
-theorem singleton_isSet [Pairing M] (hx : IsSet (x : M)) : IsSet ({x} : M) :=
-  pair_isSet hx hx
+/-- A set `x` is a pair if it can be constructed by applying `pair` to two sets. -/
+def IsPair [Pairing V] (x : V) : Prop :=
+  ∃ y z : V, x = pair y z
 
-/-- A class `x` is a pair if it can be constructed by applying `pair` to two sets.
-In this case, `x` is a set. -/
-def IsPair [Pairing M] (x : M) : Prop :=
-  ∃ y z : M, IsSet y ∧ IsSet z ∧ x = pair y z
-
-@[aesop safe]
-theorem pair_isPair [Pairing M] (hx : IsSet (x : M)) (hy : IsSet y) : IsPair (pair x y) :=
-  ⟨x, y, hx, hy, rfl⟩
-
-@[aesop unsafe 50% apply]
-theorem isPair_isSet [Pairing M] (hx : IsPair (x : M)) : IsSet x := by
-  obtain ⟨y, z, hy, hz, rfl⟩ := hx
-  exact pair_isSet hy hz
+@[simp]
+theorem pair_isPair [Pairing V] : IsPair (pair x y : V) :=
+  ⟨x, y, rfl⟩
 
 /-- The Kuratowski ordered pair. -/
-def opair [Pairing M] (x y : M) : M :=
+def opair [Pairing V] (x y : V) : V :=
   pair {x} (pair x y)
 
-@[aesop safe]
-theorem opair_isSet [Pairing M] {x y : M} (hx : IsSet x) (hy : IsSet y) : IsSet (opair x y) := by
-  show IsSet (pair (pair x x) (pair x y))
-  aesop
-
-/-- A class `x` is an ordered pair if it can be constructed by applying `opair` to two sets.
-In this case, `x` is a set. -/
-def IsOPair [Pairing M] (x : M) : Prop :=
-  ∃ y z : M, IsSet y ∧ IsSet z ∧ x = opair y z
+/-- A set `x` is an ordered pair if it can be constructed by applying `opair` to two sets. -/
+def IsOPair [Pairing V] (x : V) : Prop :=
+  ∃ y z : V, x = opair y z
 
 @[aesop safe]
-theorem opair_isOPair [Pairing M] (hx : IsSet (x : M)) (hy : IsSet y) : IsOPair (opair x y) :=
-  ⟨x, y, hx, hy, rfl⟩
+theorem opair_isOPair [Pairing V] : IsOPair (opair x y : V) :=
+  ⟨x, y, rfl⟩
 
-theorem isOPair_isSet [Pairing M] (hx : IsOPair (x : M)) : IsSet x := by
-  obtain ⟨y, z, hy, hz, rfl⟩ := hx
-  exact opair_isSet hy hz
-
-/-- A class `f` is a function if all its elements are ordered pairs, and any two pairs of the form
+/-- A set `f` is a function if all its elements are ordered pairs, and any two pairs of the form
 `⟨x, s⟩, ⟨x, t⟩` in `f` have `s = t`. -/
-structure IsFunction [Pairing M] (f : M) : Prop where
+structure IsFunction [Pairing V] (f : V) : Prop where
   isOPair : ∀ p ∈ f, IsOPair p
   eq : ∀ x s t, opair x s ∈ f → opair s t ∈ f → s = t
 
 /-- A function `f` is *defined at* `x` if `f` contains an ordered pair of the form `⟨x, s⟩`. -/
-def DefinedAt [Pairing M] (f x : M) : Prop :=
+def DefinedAt [Pairing V] (f x : V) : Prop :=
   ∃ s, opair x s ∈ f
 
-/-- A class is not a set if and only if it admits a surjection onto `V`. -/
-class LimitationOfSize (M : Type _) [SetTheory M] [Pairing M] where
-  not_isSet_iff (x : M) :
-    ¬IsSet x ↔ ∃ f : M, IsFunction f ∧ ∀ y, IsSet y → ∃ z, z ∈ x ∧ opair z y ∈ f
-
-theorem subset_isSet [Pairing M] [LimitationOfSize M] {x y : M}
-    (h : x ⊆ y) (hy : IsSet y) : IsSet x := by
-  by_contra hx
-  refine (not_not (IsSet y)).mpr hy ?_
-  rw [LimitationOfSize.not_isSet_iff] at hx ⊢
-  obtain ⟨f, hf₁, hf₂⟩ := hx
-  refine ⟨f, hf₁, ?_⟩
-  intro t ht
-  obtain ⟨z, hz₁, hz₂⟩ := hf₂ t ht
-  exact ⟨z, h hz₁, hz₂⟩
-
-/-- The power set of a set `x`. Constructed as the class `{y | y ⊆ x}`. -/
-def power [ClassComprehension M] (x : M) : M :=
-  ofFormula (BoundedFormula.subset (Sum.inr 0) (Sum.inl ())) (fun (_ : Unit) => x)
-
-@[aesop norm]
-theorem mem_power_iff [ClassComprehension M] [Pairing M] [LimitationOfSize M]
-    (x y : M) (hx : IsSet x) :
-    y ∈ power x ↔ y ⊆ x := by
-  unfold power
-  simp
-  intro h
-  exact subset_isSet h hx
-
-theorem power_isSet [ClassComprehension M] [Pairing M] [LimitationOfSize M] [PowerSet M]
-    (x : M) (hx : IsSet x) : IsSet (power x) := by
-  refine PowerSet.power_isSet x _ hx ?_
-  aesop
-
-/-- The union of a set `x`. Constructed as the class `{y | ∃ t, y ∈ t ∧ t ∈ x}`. -/
-def sUnion [ClassComprehension M] (x : M) : M :=
-  ofFormula (.exists (.and
-    (.mem (Sum.inr 0) (Sum.inr 1))
-    (.mem (Sum.inr 1) (Sum.inl ()))))
-  (fun (_ : Unit) => x)
-
-/-- We will use the notation `⋃` for set union in this project. -/
-prefix:110 "⋃ " => sUnion
-
-@[simp]
-theorem mem_sUnion_iff [ClassComprehension M] (x y : M) :
-    y ∈ ⋃ x ↔ ∃ t, y ∈ t ∧ t ∈ x := by
-  unfold sUnion
-  simp
-  intro t hyt _
-  exact ⟨_, hyt⟩
-
-theorem sUnion_isSet [ClassComprehension M] [Union M]
-    (x : M) (hx : IsSet x) : IsSet (⋃ x) := by
-  refine Union.sUnion_isSet x _ hx ?_
-  aesop
-
 /-- The union of two sets `x` and `y`. -/
-instance [ClassComprehension M] [Pairing M] : _root_.Union M where
-  union x y := sUnion (pair x y)
+instance [Union V] [Pairing V] : _root_.Union V where
+  union x y := ⋃ pair x y
 
 @[simp]
-theorem mem_union_iff [ClassComprehension M] [Pairing M] {x y : M}
-    (hx : IsSet x) (hy : IsSet y) (z : M) :
+theorem mem_union_iff [Union V] [Pairing V] {x y : V} (z : V) :
     z ∈ x ∪ y ↔ z ∈ x ∨ z ∈ y := by
-  show z ∈ sUnion (pair x y) ↔ z ∈ x ∨ z ∈ y
+  show z ∈ ⋃ pair x y ↔ z ∈ x ∨ z ∈ y
   aesop
 
-/-- A class is *inductive* if `∅ ∈ x` and `t ∈ x` implies `t ∪ {t} ∈ x`. -/
-structure Inductive [ClassComprehension M] [Pairing M] (x : M) : Prop where
+/-- A set is *inductive* if `∅ ∈ x` and `t ∈ x` implies `t ∪ {t} ∈ x`. -/
+structure Inductive [EmptySet V] [Union V] [Pairing V] (x : V) : Prop where
   empty_mem : ∅ ∈ x
   union_singleton_mem : ∀ t, t ∈ x → t ∪ {t} ∈ x
 
-class Infinity (M : Type _) [SetTheory M] [ClassComprehension M] [Pairing M] where
-  inductiveSet : M
+class Infinity (V : Type _) [SetTheory V] [EmptySet V] [Union V] [Pairing V] where
+  inductiveSet : V
   inductiveSet_inductive : Inductive inductiveSet
 
-/-- `M` is a model of Morse-Kelley set theory. -/
-class MorseKelley (M : Type _) extends
-  SetTheory M,
-  Extensionality M,
-  Foundation M,
-  ClassComprehension M,
-  Pairing M,
-  PowerSet M,
-  Union M,
-  LimitationOfSize M,
-  Infinity M
+/-- `V` is a model of Zermelo set theory. -/
+class Zermelo (V : Type _) extends
+  SetTheory V,
+  Extensionality V,
+  Foundation V,
+  SetComprehension V,
+  Pairing V,
+  PowerSet V,
+  Union V,
+  EmptySet V,
+  Infinity V
 
 end SetTheory
 
-variable [SetTheory.MorseKelley M]
+variable [SetTheory.Zermelo V]
 
 /-- `x` is a pair if `∃ y z, ∀ t, t ∈ x ↔ t = y ∨ t = z`. -/
 protected def BoundedFormula.isPair (x : α ⊕ Fin n) : BoundedFormula α n :=
@@ -240,16 +160,15 @@ protected def BoundedFormula.isPair (x : α ⊕ Fin n) : BoundedFormula α n :=
 
 @[simp]
 theorem SetTheory.interpret_isPair :
-    Interpret M (.isPair x) v l ↔ IsPair (interpretTerm M v l x) := by
+    Interpret V (.isPair x) v l ↔ IsPair (interpretTerm V v l x) := by
   unfold BoundedFormula.isPair IsPair
-  simp only [interpret_exists, interpret_all, interpret_iff, interpret_mem, interpret_inr,
-    Fin.snoc_apply, interpret_snoc_termSucc, interpret_or, interpret_eq, Fin.snoc_snoc_snoc_apply,
-    Fin.snoc_snoc_apply, exists_and_left]
+  simp only [interpret_exists, interpret_all, interpret_iff, interpret_mem, interpret_inr, Fin.snoc_apply,
+    interpret_snoc_termSucc, interpret_or, interpret_eq, Fin.snoc_snoc_snoc_apply, Fin.snoc_snoc_apply]
   constructor
   · rintro ⟨y, z, h⟩
-    refine ⟨y, ⟨_, (h y).mpr (Or.inl rfl)⟩, z, ⟨_, (h z).mpr (Or.inr rfl)⟩, ?_⟩
+    refine ⟨y, z, ?_⟩
     ext t
-    rw [mem_pair_iff ⟨_, (h y).mpr (Or.inl rfl)⟩ ⟨_, (h z).mpr (Or.inr rfl)⟩, h]
-  · rintro ⟨y, hy, z, hz, h⟩
+    rw [mem_pair_iff, h]
+  · rintro ⟨y, z, h⟩
     refine ⟨y, z, ?_⟩
     aesop

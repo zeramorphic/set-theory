@@ -12,7 +12,7 @@ inductive BoundedFormula (α : Type) : Nat → Type
 
 open BoundedFormula SetTheory
 
-variable [SetTheory M]
+variable [SetTheory V]
 
 /-- `Formula α` is the type of formulas in the language of set theory,
 with all free variables indexed by `α`. -/
@@ -182,21 +182,21 @@ theorem Fin.two_snoc_two (l : Fin 2 → α) : Fin.snoc l x 2 = x := rfl
 
 namespace SetTheory
 
-def interpretTerm (M : Type _) (v : α → M) (l : Fin n → M) : α ⊕ Fin n → M
+def interpretTerm (V : Type _) (v : α → V) (l : Fin n → V) : α ⊕ Fin n → V
   | .inl a => v a
   | .inr k => l k
 
 /-- Interpret a bounded formula in the language of set theory. -/
-def Interpret (M : Type _) [SetTheory M] {α : Type} :
-    {n : Nat} → BoundedFormula α n → (α → M) → (Fin n → M) → Prop
+def Interpret (V : Type _) [SetTheory V] {α : Type} :
+    {n : Nat} → BoundedFormula α n → (α → V) → (Fin n → V) → Prop
   | _, .falsum, _, _ => False
-  | _, .eq x y, v, l => interpretTerm M v l x = interpretTerm M v l y
-  | _, .mem x y, v, l => interpretTerm M v l x ∈ interpretTerm M v l y
-  | _, .imp p q, v, l => Interpret M p v l → Interpret M q v l
-  | _, .all p, v, l => ∀ x : M, Interpret M p v (Fin.snoc l x)
+  | _, .eq x y, v, l => interpretTerm V v l x = interpretTerm V v l y
+  | _, .mem x y, v, l => interpretTerm V v l x ∈ interpretTerm V v l y
+  | _, .imp p q, v, l => Interpret V p v l → Interpret V q v l
+  | _, .all p, v, l => ∀ x : V, Interpret V p v (Fin.snoc l x)
 
-def InterpretFormula (M : Type _) [SetTheory M] {α : Type} (p : Formula α) (v : α → M) : Prop :=
-  Interpret M p v (fun x => x.false_of_fin_zero.elim)
+def InterpretFormula (V : Type _) [SetTheory V] {α : Type} (p : Formula α) (v : α → V) : Prop :=
+  Interpret V p v (fun x => x.false_of_fin_zero.elim)
 
 @[simp]
 theorem interpret_inl :
@@ -210,47 +210,47 @@ theorem interpret_inr :
 
 @[simp]
 theorem interpret_snoc_termSucc :
-    interpretTerm M v (Fin.snoc l y) (termSucc x) = interpretTerm M v l x :=
+    interpretTerm V v (Fin.snoc l y) (termSucc x) = interpretTerm V v l x :=
   by aesop
 
 @[simp]
-theorem interpret_falsum : Interpret M .falsum v l ↔ False :=
+theorem interpret_falsum : Interpret V .falsum v l ↔ False :=
   Iff.rfl
 
 @[simp]
 theorem interpret_eq :
-    Interpret M (.eq x y) v l ↔
-    interpretTerm M v l x = interpretTerm M v l y :=
+    Interpret V (.eq x y) v l ↔
+    interpretTerm V v l x = interpretTerm V v l y :=
   Iff.rfl
 
 @[simp]
 theorem interpret_mem :
-    Interpret M (.mem x y) v l ↔
-    interpretTerm M v l x ∈ interpretTerm M v l y :=
+    Interpret V (.mem x y) v l ↔
+    interpretTerm V v l x ∈ interpretTerm V v l y :=
   Iff.rfl
 
 @[simp]
 theorem interpret_imp :
-    Interpret M (.imp p q) v l ↔
-    Interpret M p v l → Interpret M q v l :=
+    Interpret V (.imp p q) v l ↔
+    Interpret V p v l → Interpret V q v l :=
   Iff.rfl
 
 @[simp]
 theorem interpret_all :
-    Interpret M (.all p) v l ↔
-    ∀ x : M, Interpret M p v (Fin.snoc l x) :=
+    Interpret V (.all p) v l ↔
+    ∀ x : V, Interpret V p v (Fin.snoc l x) :=
   Iff.rfl
 
 @[simp]
 theorem interpret_termSum_elim {p : α ⊕ Fin n} :
-    interpretTerm M (Sum.elim vα vβ) l (termSum p) =
-    interpretTerm M vα l p :=
+    interpretTerm V (Sum.elim vα vβ) l (termSum p) =
+    interpretTerm V vα l p :=
   by cases p <;> rfl
 
 @[simp]
 theorem interpret_sum_elim :
-    Interpret M (.sum β p) (Sum.elim vα vβ) l ↔
-    Interpret M p vα l :=
+    Interpret V (.sum β p) (Sum.elim vα vβ) l ↔
+    Interpret V p vα l :=
   by induction p <;> aesop
 
 end SetTheory
@@ -260,7 +260,7 @@ protected def BoundedFormula.not (p : BoundedFormula α n) : BoundedFormula α n
 
 @[simp]
 theorem SetTheory.interpret_not :
-    Interpret M (.not p) v l ↔ ¬Interpret M p v l :=
+    Interpret V (.not p) v l ↔ ¬Interpret V p v l :=
   Iff.rfl
 
 protected def BoundedFormula.ne (x y : α ⊕ Fin n) : BoundedFormula α n :=
@@ -268,7 +268,7 @@ protected def BoundedFormula.ne (x y : α ⊕ Fin n) : BoundedFormula α n :=
 
 @[simp]
 theorem SetTheory.ne :
-    Interpret M (.ne x y) v l ↔ interpretTerm M v l x ≠ interpretTerm M v l y :=
+    Interpret V (.ne x y) v l ↔ interpretTerm V v l x ≠ interpretTerm V v l y :=
   Iff.rfl
 
 protected def BoundedFormula.or (p q : BoundedFormula α n) : BoundedFormula α n :=
@@ -276,7 +276,7 @@ protected def BoundedFormula.or (p q : BoundedFormula α n) : BoundedFormula α 
 
 @[simp]
 theorem SetTheory.interpret_or :
-    Interpret M (.or p q) v l ↔ Interpret M p v l ∨ Interpret M q v l := by
+    Interpret V (.or p q) v l ↔ Interpret V p v l ∨ Interpret V q v l := by
   rw [or_iff]
   rfl
 
@@ -285,7 +285,7 @@ protected def BoundedFormula.and (p q : BoundedFormula α n) : BoundedFormula α
 
 @[simp]
 theorem SetTheory.interpret_and :
-    Interpret M (.and p q) v l ↔ Interpret M p v l ∧ Interpret M q v l := by
+    Interpret V (.and p q) v l ↔ Interpret V p v l ∧ Interpret V q v l := by
   rw [and_iff]
   rfl
 
@@ -294,7 +294,7 @@ protected def BoundedFormula.iff (p q : BoundedFormula α n) : BoundedFormula α
 
 @[simp]
 theorem SetTheory.interpret_iff :
-    Interpret M (.iff p q) v l ↔ (Interpret M p v l ↔ Interpret M q v l) := by
+    Interpret V (.iff p q) v l ↔ (Interpret V p v l ↔ Interpret V q v l) := by
   unfold BoundedFormula.iff
   aesop
 
@@ -305,8 +305,8 @@ protected def BoundedFormula.subset (x y : α ⊕ Fin n) : BoundedFormula α n :
 
 @[simp]
 theorem SetTheory.interpret_subset :
-    Interpret M (.subset x y) v l ↔
-    interpretTerm M v l x ⊆ interpretTerm M v l y := by
+    Interpret V (.subset x y) v l ↔
+    interpretTerm V v l x ⊆ interpretTerm V v l y := by
   unfold BoundedFormula.subset
   aesop
 
@@ -315,16 +315,7 @@ protected def BoundedFormula.exists (p : BoundedFormula α (n + 1)) : BoundedFor
 
 @[simp]
 theorem SetTheory.interpret_exists :
-    Interpret M (.exists p) v l ↔
-    ∃ x : M, Interpret M p v (Fin.snoc l x) := by
+    Interpret V (.exists p) v l ↔
+    ∃ x : V, Interpret V p v (Fin.snoc l x) := by
   unfold BoundedFormula.exists
-  aesop
-
-protected def BoundedFormula.isSet (x : α ⊕ Fin n) : BoundedFormula α n :=
-  .exists (.mem (termSucc x) (Sum.inr (Fin.last n)))
-
-@[simp]
-theorem SetTheory.interpret_isSet :
-    Interpret M (.isSet x) v l ↔ IsSet (interpretTerm M v l x) := by
-  unfold BoundedFormula.isSet IsSet
   aesop
