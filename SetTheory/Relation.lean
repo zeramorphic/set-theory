@@ -4,8 +4,20 @@ namespace SetTheory
 
 variable [Zermelo V] {r x y z : V}
 
-structure IsRelation (r : V) : Prop where
-  isOPair : ∀ p ∈ r, IsOPair p
+def IsRelation (r : V) : Prop :=
+  ∀ p ∈ r, IsOPair p
+
+/-- `r` is a relation if all elements of `r` are ordered pairs. -/
+protected def _root_.BoundedFormula.isRelation (r : α ⊕ Fin n) : BoundedFormula α n :=
+  .all (.imp
+    (.mem (Sum.inr (Fin.last n)) (termSucc r))
+    (.isOPair (Sum.inr (Fin.last n))))
+
+@[simp]
+theorem interpret_isRelation {r : α ⊕ Fin n} :
+    Interpret V (.isRelation r) v l ↔ IsRelation (interpretTerm V v l r) := by
+  unfold BoundedFormula.isRelation IsRelation
+  simp
 
 theorem opair_left_mem_sUnion_sUnion (hxyr : opair x y ∈ r) :
     x ∈ ⋃ ⋃ r := by
@@ -189,7 +201,7 @@ theorem inverse_inverse (hr : IsRelation r) : inverse (inverse r) = r := by
   constructor
   · aesop
   · intro h
-    obtain ⟨y, z, rfl⟩ := hr.isOPair x h
+    obtain ⟨y, z, rfl⟩ := hr x h
     exact ⟨y, z, rfl, z, y, rfl, h⟩
 
 @[simp]
@@ -269,7 +281,6 @@ theorem rcomp_assoc : rcomp (rcomp t s) r = rcomp t (rcomp s r) := by
   aesop
 
 theorem rcomp_isRelation (hr : IsRelation r) : IsRelation (rcomp s r) := by
-  constructor
   intro x hx
   rw [mem_rcomp_iff] at hx
   aesop

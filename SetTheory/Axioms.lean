@@ -102,10 +102,13 @@ theorem mem_union_iff [Union V] [Pairing V] {x y : V} (z : V) :
   show z ∈ ⋃ pair x y ↔ z ∈ x ∨ z ∈ y
   aesop
 
+def succ [Union V] [Pairing V] (x : V) : V :=
+  x ∪ {x}
+
 /-- A set is *inductive* if `∅ ∈ x` and `t ∈ x` implies `t ∪ {t} ∈ x`. -/
 structure Inductive [EmptySet V] [Union V] [Pairing V] (x : V) : Prop where
   empty_mem : ∅ ∈ x
-  union_singleton_mem : ∀ t, t ∈ x → t ∪ {t} ∈ x
+  succ_mem : ∀ t, t ∈ x → succ t ∈ x
 
 class Infinity (V : Type _) [SetTheory V] [EmptySet V] [Union V] [Pairing V] where
   inductiveSet : V

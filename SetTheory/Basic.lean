@@ -1,9 +1,5 @@
 import SetTheory.Axioms
 
-/-!
-Development roughly follows *(Introduction to Set Theory* by Karel Hrbacek and Thomas Jech.
--/
-
 namespace SetTheory
 
 variable [Zermelo V] {x y z : V}
@@ -82,6 +78,9 @@ theorem union_pair_eq_inter_pair :
 
 theorem forall_not_mem (h : ∀ y, y ∉ x) : x = ∅ :=
   by ext; aesop
+
+theorem eq_empty_iff_forall_not_mem : x = ∅ ↔ ∀ y, y ∉ x :=
+  ⟨by aesop, forall_not_mem⟩
 
 @[simp]
 theorem subset_rfl : x ⊆ x :=
@@ -162,5 +161,21 @@ theorem union_distrib_left : x ∪ (y ∩ z) = (x ∪ y) ∩ (x ∪ z) :=
 
 theorem union_distrib_right : (x ∩ y) ∪ z = (x ∪ z) ∩ (y ∪ z) :=
   by ext; aesop
+
+@[simp]
+theorem inter_empty : x ∩ ∅ = ∅ :=
+  by ext; simp
+
+@[simp]
+theorem empty_inter : ∅ ∩ x = ∅ :=
+  by ext; simp
+
+@[simp]
+theorem union_empty : x ∪ ∅ = x :=
+  by ext; simp
+
+@[simp]
+theorem empty_union : ∅ ∪ x = x :=
+  by ext; simp
 
 end SetTheory
