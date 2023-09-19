@@ -131,4 +131,57 @@ theorem opair_injective {x y z w : V} :
 theorem forall_not_mem (h : ∀ y, y ∉ x) : x = ∅ :=
   by ext; aesop
 
+@[simp]
+theorem subset_rfl : x ⊆ x :=
+  fun _ hz => hz
+
+theorem subset_of_eq (h : x = y) : x ⊆ y :=
+  by subst h; exact subset_rfl
+
+theorem subset_antisymm (h₁ : x ⊆ y) (h₂ : y ⊆ x) : x = y :=
+  by ext; aesop
+
+/-- The Russell set of a given set `x` is `{y ∈ x | y ∉ y}`. -/
+def russellSet (x : V) :=
+  sep
+    (.not (.mem (Sum.inr 0) (Sum.inr 0)))
+    (fun (i : Empty) => i.elim)
+    x
+
+theorem russellSet_subset (x : V) :
+    russellSet x ⊆ x := by
+  unfold russellSet
+  intro y hy
+  aesop
+
+theorem mem_russellSet_iff : y ∈ russellSet x ↔ y ∈ x ∧ y ∉ y := by
+  unfold russellSet
+  simp
+
+theorem russellSet_not_mem (x : V) : russellSet x ∉ x := by
+  intro h
+  by_cases h' : russellSet x ∈ russellSet x
+  · have := mem_russellSet_iff.mp h'
+    exact this.2 h'
+  · have := h'
+    rw [mem_russellSet_iff, not_and, not_not] at this
+    exact h' (this h)
+
+/-- **Russell's paradox**. The universe is not a set. -/
+theorem univ_not_set (x : V) : ∃ y, y ∉ x := by
+  by_contra h
+  simp only [not_exists, not_not] at h
+  exact russellSet_not_mem x (h _)
+
+/-- The power set of any set is not a subset of the set. -/
+theorem power_not_subset (x : V) : ¬power x ⊆ x := by
+  intro h
+  refine russellSet_not_mem x (h ?_)
+  rw [mem_power_iff]
+  exact russellSet_subset x
+
+theorem power_ne (x : V) : power x ≠ x := by
+  intro h
+  exact (power_not_subset x) (subset_of_eq h)
+
 end SetTheory
