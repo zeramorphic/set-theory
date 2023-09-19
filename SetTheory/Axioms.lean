@@ -226,3 +226,30 @@ class MorseKelley (M : Type _) extends
   Infinity M
 
 end SetTheory
+
+variable [SetTheory.MorseKelley M]
+
+/-- `x` is a pair if `∃ y z, ∀ t, t ∈ x ↔ t = y ∨ t = z`. -/
+protected def BoundedFormula.isPair (x : α ⊕ Fin n) : BoundedFormula α n :=
+  .exists (.exists (.all (.iff
+    (.mem (Sum.inr (Fin.last (n + 2))) (termSucc (termSucc (termSucc x))))
+    (.or
+      (.eq (Sum.inr (Fin.last (n + 2))) (Sum.inr ⟨n, lt_add_three⟩))
+      (.eq (Sum.inr (Fin.last (n + 2))) (Sum.inr ⟨n + 1, lt_add_two⟩)))
+  )))
+
+@[simp]
+theorem SetTheory.interpret_isPair :
+    Interpret M (.isPair x) v l ↔ IsPair (interpretTerm M v l x) := by
+  unfold BoundedFormula.isPair IsPair
+  simp only [interpret_exists, interpret_all, interpret_iff, interpret_mem, interpret_inr,
+    Fin.snoc_apply, interpret_snoc_termSucc, interpret_or, interpret_eq, Fin.snoc_snoc_snoc_apply,
+    Fin.snoc_snoc_apply, exists_and_left]
+  constructor
+  · rintro ⟨y, z, h⟩
+    refine ⟨y, ⟨_, (h y).mpr (Or.inl rfl)⟩, z, ⟨_, (h z).mpr (Or.inr rfl)⟩, ?_⟩
+    ext t
+    rw [mem_pair_iff ⟨_, (h y).mpr (Or.inl rfl)⟩ ⟨_, (h z).mpr (Or.inr rfl)⟩, h]
+  · rintro ⟨y, hy, z, hz, h⟩
+    refine ⟨y, z, ?_⟩
+    aesop

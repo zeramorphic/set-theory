@@ -135,12 +135,32 @@ theorem Fin.snoc_castSucc :
   rfl
 
 @[simp]
-theorem Fin.snoc_last :
+theorem lt_add_two {n : Nat} : n < n + 2 := by
+  rw [Nat.lt_succ]
+  exact Nat.le_succ_of_le (Nat.le_refl n)
+
+@[simp]
+theorem lt_add_three {n : Nat} : n < n + 3 := by
+  rw [Nat.lt_succ]
+  exact Nat.le_succ_of_le (Nat.le_succ_of_le (Nat.le_refl n))
+
+@[simp]
+theorem Fin.snoc_apply :
     Fin.snoc (l : Fin n → α) x (Fin.last n) = x := by
-  rw [Fin.snoc, dif_neg]
-  rw [Fin.last_val]
-  intro h
-  exact Nat.ne_of_lt h rfl
+  simp only [snoc]
+  aesop
+
+@[simp]
+theorem Fin.snoc_snoc_apply :
+    Fin.snoc (Fin.snoc (l : Fin n → α) x) y ⟨n, lt_add_two⟩ = x := by
+  simp only [snoc]
+  aesop
+
+@[simp]
+theorem Fin.snoc_snoc_snoc_apply :
+    Fin.snoc (Fin.snoc (Fin.snoc (l : Fin n → α) x) y) z ⟨n, lt_add_three⟩ = x := by
+  simp only [snoc]
+  aesop
 
 @[simp]
 theorem Fin.zero_snoc_zero (l : Fin 0 → α) : Fin.snoc l x 0 = x := rfl

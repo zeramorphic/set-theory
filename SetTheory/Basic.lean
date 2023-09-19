@@ -1,5 +1,9 @@
 import SetTheory.Axioms
 
+/-!
+Development roughly follows *(Introduction to Set Theory* by Karel Hrbacek and Thomas Jech.
+-/
+
 namespace SetTheory
 
 variable [MorseKelley M] {x y z : M}
@@ -160,5 +164,56 @@ theorem π₂_opair (hx : IsSet x) (hy : IsSet y) : π₂ (opair x y) = y := by
       refine (fun h' => h ?_)
       rw [mem_inter_iff (singleton_isSet hx) (pair_isSet hx hy)] at h'
       aesop
+
+@[simp]
+theorem opair_injective {x y z w : M} (hx : IsSet x) (hy : IsSet y) (hz : IsSet z) (hw : IsSet w) :
+    opair x y = opair z w ↔ x = z ∧ y = w := by
+  constructor
+  · intro h
+    have h₁ := congrArg π₁ h
+    have h₂ := congrArg π₂ h
+    simp [π₁_opair hx hy, π₁_opair hz hw] at h₁
+    simp [π₂_opair hx hy, π₂_opair hz hw] at h₂
+    exact ⟨h₁, h₂⟩
+  · rintro ⟨rfl, rfl⟩
+    rfl
+
+theorem forall_not_mem (h : ∀ y, y ∉ x) : x = ∅ :=
+  by ext; aesop
+
+theorem subset_univ : x ⊆ univ :=
+  by intro; aesop
+
+def russellClass : M :=
+  ofFormula (.not (.mem (Sum.inr 0) (Sum.inr 0))) (fun (i : Empty) => i.elim)
+
+@[simp]
+theorem mem_russellClass_iff :
+    x ∈ (russellClass : M) ↔ IsSet x ∧ x ∉ x := by
+  unfold russellClass
+  simp
+
+theorem russellClass_not_mem (h : russellClass ∈ (russellClass : M)) :
+    russellClass ∉ (russellClass : M) := by
+  rw [mem_russellClass_iff] at h
+  exact h.2
+
+theorem russellClass_mem
+    (h₁ : IsSet (russellClass : M)) (h₂ : russellClass ∉ (russellClass : M)) :
+    russellClass ∈ (russellClass : M) := by
+  rw [mem_russellClass_iff, not_and, not_not] at h₂
+  exact h₂ h₁
+
+/-- The Russell class is not a set. -/
+theorem russellClass_not_isSet : ¬IsSet (russellClass : M) := by
+  intro h
+  by_cases h' : russellClass ∈ (russellClass : M)
+  · exact russellClass_not_mem h' h'
+  · exact h' (russellClass_mem h h')
+
+/-- The universe is not a set. -/
+theorem univ_not_isSet : ¬IsSet (univ : M) := by
+  intro h
+  exact russellClass_not_isSet (subset_isSet subset_univ h)
 
 end SetTheory
